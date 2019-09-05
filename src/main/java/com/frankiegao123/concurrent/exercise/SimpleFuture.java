@@ -21,9 +21,13 @@ public class SimpleFuture<V> implements RunnableFuture<V> {
     private static final int CANCELLED = 1;
     private static final int DONE = 3;
 
+    private Exception exception;
+
     private V value;
     private volatile int state = NEW;
     private ConcurrentLinkedQueue<Waiter> waiters = new ConcurrentLinkedQueue<>();
+
+
 
     private Callable<V> callable;
 
@@ -38,8 +42,7 @@ public class SimpleFuture<V> implements RunnableFuture<V> {
             state = DONE;
         }
         catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            exception = e;
         }
         finally {
             finish();
@@ -95,7 +98,7 @@ public class SimpleFuture<V> implements RunnableFuture<V> {
         return waiters.size();
     }
 
-    private void await(boolean timed, long nanos) {
+    private void await(boolean timed, long nanos) throws ExecutionException {
 
         if ( state > NEW ) {
             return;
@@ -111,6 +114,10 @@ public class SimpleFuture<V> implements RunnableFuture<V> {
         }
         else {
             LockSupport.park( this );
+        }
+
+        if ( exception != null ) {
+            throw new ExecutionException( exception );
         }
     }
 
